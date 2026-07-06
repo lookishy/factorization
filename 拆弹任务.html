@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>因式分解拆弹任务</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <!-- Cloud Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #0f172a; color: white; font-family: monospace; }
         * { -webkit-tap-highlight-color: transparent; }
@@ -31,7 +37,24 @@
 
     <div id="app" class="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden">
         
-        <div id="menu-view" class="z-20 text-center space-y-8 animate-zoom-in bg-slate-800 p-8 rounded-2xl border-4 border-slate-700 shadow-2xl max-w-lg w-full relative">
+        <div id="login-view" class="z-20 text-center space-y-8 animate-zoom-in bg-slate-800 p-8 rounded-2xl border-4 border-slate-700 shadow-2xl max-w-md w-full relative">
+            <h1 class="text-4xl font-black text-white mb-2 uppercase tracking-widest">因式分解<br/><span class="text-red-500 text-5xl">拆弹任务</span></h1>
+            <p class="text-slate-300">学生登录系统</p>
+            <div class="flex flex-col gap-4 mt-8 px-8">
+                <button onclick="loginWithGoogle()" class="py-4 px-6 rounded-lg font-bold text-lg transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-white border-gray-300 text-gray-800 hover:bg-gray-100 flex items-center justify-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                    </svg>
+                    使用 Google 登录
+                </button>
+            </div>
+            <div id="login-error" class="text-red-400 font-bold mt-4 hidden"></div>
+        </div>
+
+        <div id="menu-view" class="z-20 text-center space-y-8 animate-zoom-in bg-slate-800 p-8 rounded-2xl border-4 border-slate-700 shadow-2xl max-w-lg w-full relative hidden">
             <div class="absolute top-4 right-4 bg-slate-900 px-3 py-1 rounded-full border border-slate-600 flex items-center gap-2 text-yellow-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M8 22v-4.19"></path><path d="M16 22v-4.19"></path><path d="M12 14.61a7 7 0 0 0-6.19-10.61h12.38A7 7 0 0 0 12 14.61Z"></path></svg>
                 <span id="menu-score" class="font-bold">0 分</span>
@@ -47,6 +70,27 @@
                 <button onclick="startGame('easy')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-green-600 border-green-800 text-white hover:bg-green-500">简单</button>
                 <button onclick="startGame('medium')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-yellow-600 border-yellow-800 text-white hover:bg-yellow-500">中等</button>
                 <button onclick="startGame('hard')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-red-600 border-red-800 text-white hover:bg-red-500">困难</button>
+                <button onclick="startGame('hell')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 border-l-4 border-r-4 active:border-b-0 active:translate-y-1 bg-black border-red-900 text-red-500 hover:bg-zinc-900 shadow-[0_0_15px_rgba(220,38,38,0.5)]">地狱</button>
+            </div>
+            <div class="mt-4">
+                <button onclick="openLeaderboard()" class="text-slate-300 underline hover:text-white transition-colors">查看全服排行榜</button>
+            </div>
+        </div>
+
+        <!-- 排行榜弹窗 Modal -->
+        <div id="leaderboard-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 hidden">
+            <div class="bg-slate-800 border-4 border-slate-700 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative animate-zoom-in flex flex-col max-h-[80vh]">
+                <button onclick="closeLeaderboard()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h2 class="text-3xl font-black text-white text-center mb-6 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M8 22v-4.19"></path><path d="M16 22v-4.19"></path><path d="M12 14.61a7 7 0 0 0-6.19-10.61h12.38A7 7 0 0 0 12 14.61Z"></path></svg>
+                    全服排行榜
+                </h2>
+
+                <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar" id="leaderboard-list">
+                    <div class="text-center text-slate-400 py-8">正在加载数据...</div>
+                </div>
             </div>
         </div>
 
@@ -214,6 +258,22 @@
 
         const soundEngine = new SoundEngine();
 
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            // 请在此填入 Firebase 配置信息
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
         // --- 核心全局状态 ---
         let score = 0;
         let timeLeft = 90;
@@ -246,7 +306,7 @@
                     const chosenA = primes[Math.floor(Math.random() * primes.length)];
                     if (Math.random() > 0.5) { p = chosenA; r = 1; } else { p = 1; r = chosenA; }
                     q = randNonZero(-9, 9); s = randNonZero(-9, 9);
-                } else {
+                } else if (diff === 'hard') {
                     const composites = [4, 6, 8, 9, 10, 12];
                     const chosenA = composites[Math.floor(Math.random() * composites.length)];
                     const pairs = getFactorPairs(chosenA);
@@ -254,30 +314,217 @@
                     if (Math.random() > 0.5) { p = pair[0]; r = pair[1]; } else { p = pair[1]; r = pair[0]; }
                     if (Math.random() > 0.5) { const temp = p; p = r; r = temp; }
                     q = randNonZero(-12, 12); s = randNonZero(-12, 12);
+                } else if (diff === 'hell') {
+                    const composites = [4, 6, 8, 9, 10, 12];
+                    const chosenA = composites[Math.floor(Math.random() * composites.length)];
+                    const pairs = getFactorPairs(chosenA);
+                    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+                    if (Math.random() > 0.5) { p = -pair[0]; r = pair[1]; } else { p = pair[1]; r = -pair[0]; }
+                    if (Math.random() > 0.5) { const temp = p; p = r; r = temp; }
+                    q = randNonZero(-15, 15); s = randNonZero(-15, 15);
                 }
                 a = p * r; b = (p * s) + (q * r); c = q * s;
                 if (b !== 0 && c !== 0 && gcd3(a, b, c) === 1) isValid = true;
             }
+
             const formatTerm = (coeff, power, isFirst) => {
                 if (coeff === 0) return '';
                 const absCoeff = Math.abs(coeff);
-                const sign = coeff < 0 ? ' - ' : (isFirst ? '' : ' + ');
+                const sign = coeff < 0 ? '-' : (isFirst ? '' : '+');
                 const strCoeff = (absCoeff === 1 && power > 0) ? '' : absCoeff;
                 const variable = power === 2 ? 'x²' : (power === 1 ? 'x' : '');
                 return `${sign}${strCoeff}${variable}`;
             };
-            const expression = `${formatTerm(a, 2, true)}${formatTerm(b, 1, false)}${formatTerm(c, 0, false)}`;
+
+            let expression = "";
+            if (diff === 'hell') {
+                const termA = { coeff: a, power: 2 };
+                const termB = { coeff: b, power: 1 };
+                const termC = { coeff: c, power: 0 };
+                let terms = [termA, termB, termC];
+                // Shuffle terms array
+                for (let i = terms.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [terms[i], terms[j]] = [terms[j], terms[i]];
+                }
+
+                expression = terms.map((t, index) => {
+                    const isFirst = index === 0;
+                    let formatted = formatTerm(t.coeff, t.power, isFirst);
+                    if (!isFirst && t.coeff > 0) {
+                        // formatTerm returns e.g. "+3x", "+5" or "3x" if isFirst
+                        // since formatTerm doesn't add space, we manually add it around signs
+                        formatted = formatted.replace('+', ' + ');
+                    } else if (!isFirst && t.coeff < 0) {
+                        formatted = formatted.replace('-', ' - ');
+                    } else if (isFirst && t.coeff < 0) {
+                        // "-3x²" -> "-3x²"
+                    }
+                    return formatted;
+                }).join('');
+                // If it starts with + from any weird logic, remove it
+                if (expression.startsWith(' + ')) expression = expression.substring(3);
+
+                // Cleanup multiple spaces
+                expression = expression.replace(/\s+/g, ' ').trim();
+            } else {
+                expression = `${formatTerm(a, 2, true).replace('-', '- ')} ${formatTerm(b, 1, false).replace('+', '+ ').replace('-', '- ')} ${formatTerm(c, 0, false).replace('+', '+ ').replace('-', '- ')}`;
+                expression = expression.replace(/\s+/g, ' ').trim();
+                // Fix leading minus sign space
+                if (expression.startsWith('- ')) {
+                    expression = '-' + expression.substring(2);
+                }
+            }
+
             return { a, b, c, expression, correctFactors: { p, q, r, s } };
         }
+
+        // --- 排行榜实时监听 ---
+        let leaderboardUnsubscribe = null;
+
+        function openLeaderboard() {
+            document.getElementById('leaderboard-modal').classList.remove('hidden');
+            if (!leaderboardUnsubscribe) {
+                // 监听 Firestore 中 averageScore 前 10 名
+                leaderboardUnsubscribe = db.collection('users')
+                    .orderBy('averageScore', 'desc')
+                    .limit(10)
+                    .onSnapshot((snapshot) => {
+                        const listDiv = document.getElementById('leaderboard-list');
+                        listDiv.innerHTML = '';
+
+                        if (snapshot.empty) {
+                            listDiv.innerHTML = '<div class="text-center text-slate-400 py-8">暂无数据</div>';
+                            return;
+                        }
+
+                        let html = '<table class="w-full text-left text-sm">';
+                        html += '<thead class="text-slate-400 border-b border-slate-600"><tr><th class="pb-2 w-12 text-center">名次</th><th class="pb-2">特工代号</th><th class="pb-2 text-right">平均分</th><th class="pb-2 text-right">存活率</th></tr></thead><tbody>';
+
+                        let rank = 1;
+                        snapshot.forEach((doc) => {
+                            const data = doc.data();
+                            const isMe = currentUser && currentUser.uid === doc.id;
+                            const rowClass = isMe ? "bg-slate-700 font-bold text-yellow-400" : "border-b border-slate-700 hover:bg-slate-700/50";
+
+                            let rankDisplay = `<span class="text-slate-400">${rank}</span>`;
+                            if (rank === 1) rankDisplay = '🥇';
+                            else if (rank === 2) rankDisplay = '🥈';
+                            else if (rank === 3) rankDisplay = '🥉';
+
+                            html += `<tr class="${rowClass} transition-colors">
+                                <td class="py-3 text-center text-lg">${rankDisplay}</td>
+                                <td class="py-3 truncate max-w-[120px]">${data.displayName || 'Unknown'}</td>
+                                <td class="py-3 text-right text-yellow-500 font-mono">${Math.round(data.averageScore || 0)}</td>
+                                <td class="py-3 text-right text-emerald-400 font-mono">${Math.round(data.survivalRate || 0)}%</td>
+                            </tr>`;
+                            rank++;
+                        });
+                        html += '</tbody></table>';
+                        listDiv.innerHTML = html;
+                    }, (err) => {
+                        console.error("Leaderboard fetch error:", err);
+                        document.getElementById('leaderboard-list').innerHTML = '<div class="text-center text-red-400 py-8">加载排行榜失败</div>';
+                    });
+            }
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-modal').classList.add('hidden');
+        }
+
+        // --- 用户状态与登录逻辑 ---
+        let currentUser = null;
+        let userData = {
+            totalPlays: 0,
+            totalScore: 0,
+            deaths: 0,
+            averageScore: 0,
+            survivalRate: 0,
+            displayName: ""
+        };
+
+        function showLogin() {
+            gameState = 'login';
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('menu-view').classList.add('hidden');
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('explosion-effect').classList.add('hidden');
+        }
+
+        async function loginWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await firebase.auth().signInWithPopup(provider);
+                const user = result.user;
+                if (!user.email || !user.email.endsWith('@tsunjin.edu.my')) {
+                    document.getElementById('login-error').innerText = "请使用学校官方电邮登录！";
+                    document.getElementById('login-error').classList.remove('hidden');
+                    await firebase.auth().signOut();
+                    return;
+                }
+                document.getElementById('login-error').classList.add('hidden');
+                // 登录成功后 onAuthStateChanged 会处理后续
+            } catch (error) {
+                console.error("Login error:", error);
+                document.getElementById('login-error').innerText = "登录失败：" + error.message;
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        async function loadUserData(user) {
+            try {
+                const userRef = db.collection('users').doc(user.uid);
+                const doc = await userRef.get();
+
+                let defaultName = user.displayName;
+                if (!defaultName) {
+                    defaultName = user.email.split('@')[0];
+                }
+
+                if (doc.exists) {
+                    userData = doc.data();
+                    // 确保旧数据里有 displayName
+                    if (!userData.displayName) {
+                        userData.displayName = defaultName;
+                    }
+                } else {
+                    userData = {
+                        totalPlays: 0,
+                        totalScore: 0,
+                        deaths: 0,
+                        averageScore: 0,
+                        survivalRate: 0,
+                        displayName: defaultName
+                    };
+                    await userRef.set(userData);
+                }
+            } catch (err) {
+                console.error("Error loading user data:", err);
+            }
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user && user.email && user.email.endsWith('@tsunjin.edu.my')) {
+                currentUser = user;
+                await loadUserData(user);
+                showMenu();
+            } else {
+                currentUser = null;
+                showLogin();
+            }
+        });
 
         // --- 状态场景切换渲染 ---
         function showMenu() {
             gameState = 'menu';
             document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
+            document.getElementById('login-view').classList.add('hidden');
             document.getElementById('menu-view').classList.remove('hidden');
             document.getElementById('game-view').classList.add('hidden');
             document.getElementById('explosion-effect').classList.add('hidden');
-            document.getElementById('menu-score').innerText = `${score} 分`;
+            document.getElementById('menu-score').innerText = `平均 ${Math.round(userData.averageScore)} 分 | 存活率 ${Math.round(userData.survivalRate)}%`;
             if (timerInterval) clearInterval(timerInterval);
         }
 
@@ -436,14 +683,39 @@
             return `(${aStr}x${bStr})`;
         }
 
+        async function updateUserStats(earnedScore, isDeath) {
+            if (!currentUser) return;
+            try {
+                userData.totalPlays += 1;
+                if (isDeath) userData.deaths += 1;
+                userData.totalScore += earnedScore;
+
+                userData.averageScore = userData.totalPlays > 0 ? userData.totalScore / userData.totalPlays : 0;
+                userData.survivalRate = userData.totalPlays > 0 ? ((userData.totalPlays - userData.deaths) / userData.totalPlays) * 100 : 0;
+
+                const userRef = db.collection('users').doc(currentUser.uid);
+                await userRef.update({
+                    totalPlays: userData.totalPlays,
+                    deaths: userData.deaths,
+                    totalScore: userData.totalScore,
+                    averageScore: userData.averageScore,
+                    survivalRate: userData.survivalRate
+                });
+            } catch (err) {
+                console.error("Error updating stats:", err);
+            }
+        }
+
         function handleWin(tl, tr, bl, br) {
             gameState = 'defused';
             soundEngine.playWin();
             disableInputs();
 
-            let basePoints = difficulty === 'easy' ? 100 : (difficulty === 'medium' ? 150 : 200);
+            let basePoints = difficulty === 'easy' ? 100 : (difficulty === 'medium' ? 150 : (difficulty === 'hard' ? 200 : 300));
             const earned = basePoints + timeLeft;
             score += earned;
+
+            updateUserStats(earned, false);
 
             document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
             document.getElementById('feedback-box').classList.remove('hidden');
@@ -464,6 +736,8 @@
             soundEngine.playExplosion();
             clearInterval(timerInterval);
             disableInputs();
+
+            updateUserStats(0, true);
 
             document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
             document.getElementById('explosion-effect').classList.remove('hidden');
@@ -495,8 +769,8 @@
             }
         }
 
-        // 初始化载入主页
-        showMenu();
+        // 初始化载入登录页 (onAuthStateChanged 会接管)
+        showLogin();
     </script>
 </body>
 </html>
