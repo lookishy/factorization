@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>因式分解拆弹任务</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; padding: 0; background-color: #0f172a; color: white; font-family: monospace; }
+        * { -webkit-tap-highlight-color: transparent; }
+        .hidden { display: none !important; }
+        
+        /* 炸弹爆炸震动动效 */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-5px, 5px) rotate(-1deg); }
+            50% { transform: translate(5px, -5px) rotate(1deg); }
+            75% { transform: translate(-5px, -5px) rotate(-1deg); }
+        }
+        .animate-shake { animation: shake 0.5s ease-in-out infinite; }
+
+        /* 界面淡入与缩放 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden">
+        
+        <div id="menu-view" class="z-20 text-center space-y-8 animate-zoom-in bg-slate-800 p-8 rounded-2xl border-4 border-slate-700 shadow-2xl max-w-lg w-full relative">
+            <div class="absolute top-4 right-4 bg-slate-900 px-3 py-1 rounded-full border border-slate-600 flex items-center gap-2 text-yellow-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M8 22v-4.19"></path><path d="M16 22v-4.19"></path><path d="M12 14.61a7 7 0 0 0-6.19-10.61h12.38A7 7 0 0 0 12 14.61Z"></path></svg>
+                <span id="menu-score" class="font-bold">0 分</span>
+            </div>
+            <div class="flex justify-center mb-4">
+                <div class="bg-yellow-500 p-3 rounded-full shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+            </div>
+            <h1 class="text-4xl font-black text-white mb-2 uppercase tracking-widest">因式分解<br/><span class="text-red-500 text-5xl">拆弹任务</span></h1>
+            <p class="text-slate-300">作为拆弹专家，你需要运用<span class="text-yellow-400 font-bold">交叉相乘法</span>剪断正确的线路。</p>
+            <div class="grid grid-cols-1 gap-4 w-full px-8">
+                <button onclick="startGame('easy')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-green-600 border-green-800 text-white hover:bg-green-500">简单</button>
+                <button onclick="startGame('medium')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-yellow-600 border-yellow-800 text-white hover:bg-yellow-500">中等</button>
+                <button onclick="startGame('hard')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-red-600 border-red-800 text-white hover:bg-red-500">困难</button>
+            </div>
+        </div>
+
+        <div id="game-view" class="relative w-full max-w-3xl aspect-[4/3] md:aspect-video flex items-center justify-center hidden">
+            <div id="explosion-effect" class="absolute inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none hidden">
+                <div class="absolute inset-0 bg-white opacity-80 animate-pulse"></div>
+                <div class="w-96 h-96 bg-orange-500 rounded-full blur-2xl opacity-80 absolute"></div>
+                <div class="w-[32rem] h-[32rem] bg-red-600 rounded-full blur-3xl opacity-70 absolute"></div>
+            </div>
+
+            <div class="relative w-full max-w-lg bg-stone-800 rounded-3xl p-6 shadow-2xl border-b-8 border-stone-900 flex flex-col items-center">
+                <div class="absolute inset-0 z-0 flex flex-col items-center justify-center opacity-100 pointer-events-none">
+                    <div class="w-[90%] h-16 bg-gradient-to-b from-stone-400 to-stone-600 rounded-lg shadow-lg mb-1 border-l-8 border-stone-700"></div>
+                    <div class="w-[95%] h-16 bg-gradient-to-b from-stone-400 to-stone-600 rounded-lg shadow-lg mb-1 border-l-8 border-stone-700 relative z-10"></div>
+                    <div class="w-[90%] h-16 bg-gradient-to-b from-stone-400 to-stone-600 rounded-lg shadow-lg border-l-8 border-stone-700"></div>
+                    <div class="absolute w-12 h-56 bg-black opacity-80 left-1/4 top-1/2 transform -translate-y-1/2 border-x-2 border-gray-800"></div>
+                    <div class="absolute w-12 h-56 bg-black opacity-80 right-1/4 top-1/2 transform -translate-y-1/2 border-x-2 border-gray-800"></div>
+                </div>
+
+                <div class="relative z-10 w-full flex flex-col items-center">
+                    <div class="bg-black border-4 border-gray-600 rounded-lg p-1 w-full mb-6 shadow-lg relative">
+                        <div class="absolute top-0 left-0 right-0 h-1/2 bg-white opacity-5 rounded-t pointer-events-none"></div>
+                        <div class="bg-emerald-900/20 p-4 rounded flex flex-col items-center justify-center min-h-[100px]">
+                            <div id="expression-text" class="font-mono text-3xl md:text-4xl tracking-widest font-bold text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                            
+                            <div id="feedback-box" class="mt-2 flex flex-col items-center hidden animate-fade-in">
+                                <div id="feedback-text" class="font-bold text-xl"></div>
+                                <div id="points-earned" class="mt-1 text-yellow-300 font-bold flex items-center gap-1 bg-black/50 px-3 py-1 rounded-full text-sm border border-yellow-500/50 hidden">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M8 22v-4.19"></path><path d="M16 22v-4.19"></path><path d="M12 14.61a7 7 0 0 0-6.19-10.61h12.38A7 7 0 0 0 12 14.61Z"></path></svg>
+                                    <span id="points-text"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="absolute -top-3 -right-2 bg-gray-900 border-2 border-gray-600 px-3 py-1 rounded shadow-lg transform rotate-2">
+                            <div id="timer-text" class="font-mono font-bold text-xl text-red-600">01:30</div>
+                        </div>
+
+                        <div class="absolute -top-3 -left-2 bg-gray-900 border-2 border-gray-600 px-3 py-1 rounded shadow-lg transform -rotate-2">
+                            <div class="font-mono font-bold text-sm text-yellow-500 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="inline"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M8 22v-4.19"></path><path d="M16 22v-4.19"></path><path d="M12 14.61a7 7 0 0 0-6.19-10.61h12.38A7 7 0 0 0 12 14.61Z"></path></svg> 
+                                <span id="game-score">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative w-full h-64 bg-black/40 rounded-xl border border-white/10 p-4">
+                        <svg class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+                            <defs>
+                                <filter id="wire-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                                    <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="black" flood-opacity="0.5"/>
+                                </filter>
+                            </defs>
+                            <path id="wire-left-top" d="M 60,30 C 60,100 20,150 60,220" fill="none" stroke="#b91c1c" stroke-width="8" stroke-linecap="round" filter="url(#wire-shadow)" class="transition-all duration-300"/>
+                            <path id="wire-left-bottom" d="" fill="none" stroke="#b91c1c" stroke-width="8" stroke-linecap="round" filter="url(#wire-shadow)"/>
+                            
+                            <path id="wire-right-top" d="M 320,30 C 320,100 360,150 320,220" fill="none" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round" filter="url(#wire-shadow)" class="transition-all duration-300"/>
+                            <path id="wire-right-bottom" d="" fill="none" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round" filter="url(#wire-shadow)"/>
+
+                            <circle id="spark-left" cx="30" cy="120" r="4" fill="yellow" class="hidden" style="animation: ping 1s infinite;"/>
+                            <circle id="spark-right" cx="350" cy="120" r="4" fill="yellow" class="hidden" style="animation: ping 1s infinite;"/>
+                        </svg>
+
+                        <div class="grid grid-cols-2 h-full gap-x-24 gap-y-12 relative z-10">
+                            <div class="flex flex-col items-center">
+                                <input id="input-tl" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                                <div class="w-4 h-4 bg-gray-500 rounded-full mt-1 shadow-md"></div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <input id="input-tr" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                                <div class="w-4 h-4 bg-gray-500 rounded-full mt-1 shadow-md"></div>
+                            </div>
+                            <div class="flex flex-col items-center justify-end">
+                                <div class="w-4 h-4 bg-gray-500 rounded-full mb-1 shadow-md"></div>
+                                <input id="input-bl" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                            </div>
+                            <div class="flex flex-col items-center justify-end">
+                                <div class="w-4 h-4 bg-gray-500 rounded-full mb-1 shadow-md"></div>
+                                <input id="input-br" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex gap-4">
+                        <button id="btn-defuse" onclick="attemptDefuse()" disabled class="px-8 py-3 rounded shadow-xl font-black text-lg uppercase tracking-widest transition-all flex items-center gap-2 border-b-4 bg-gray-700 border-gray-800 text-gray-500 cursor-not-allowed">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            剪断引信 (拆弹)
+                        </button>
+                        <button id="btn-retry" onclick="showMenu()" class="px-8 py-3 rounded shadow-xl font-bold text-white bg-blue-600 border-b-4 border-blue-800 hover:bg-blue-500 active:border-b-0 active:translate-y-1 flex items-center gap-2 hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                            返回主菜单
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="toggleMute()" class="fixed bottom-4 right-4 text-slate-500 hover:text-white bg-slate-800 p-2 rounded-full opacity-50 hover:opacity-100 transition-opacity">
+            <svg id="mute-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        </button>
+
+    </div>
+
+    <script>
+        // --- 纯前端音频引擎调音 ---
+        class SoundEngine {
+            constructor() { this.ctx = null; this.isMuted = false; }
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+            }
+            playTick(isUrgent) {
+                if (!this.ctx || this.isMuted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(isUrgent ? 800 : 600, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+            }
+            playWireCut() {
+                if (!this.ctx || this.isMuted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+            }
+            playExplosion() {
+                if (!this.ctx || this.isMuted) return;
+                const bufferSize = this.ctx.sampleRate * 1.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.3));
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(1, this.ctx.currentTime);
+                noise.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            }
+            playWin() {
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.15);
+                    gain.gain.setValueAtTime(0.3, now + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 1);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 1);
+                });
+            }
+        }
+
+        const soundEngine = new SoundEngine();
+
+        // --- 核心全局状态 ---
+        let score = 0;
+        let timeLeft = 90;
+        let gameState = 'menu'; 
+        let difficulty = 'easy';
+        let currentProblem = null;
+        let timerInterval = null;
+        let wiresCut = { left: false, right: false };
+
+        // --- 数学计算核心辅助 ---
+        const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) { const t = b; b = a % b; a = t; } return a; };
+        const gcd3 = (a, b, c) => gcd(a, gcd(b, c));
+        const randNonZero = (min, max) => { let val = 0; while (val === 0) val = Math.floor(Math.random() * (max - min + 1)) + min; return val; };
+        const getFactorPairs = (n) => {
+            const pairs = [];
+            for (let i = 1; i * i <= n; i++) { if (n % i === 0) pairs.push([i, n / i]); }
+            return pairs;
+        };
+
+        // --- 随机自动化题目生成器 ---
+        function generateQuadratic(diff) {
+            let p = 1, q = 1, r = 1, s = 1;
+            let a = 1, b = 1, c = 1;
+            let isValid = false;
+            while (!isValid) {
+                if (diff === 'easy') {
+                    p = 1; r = 1; q = randNonZero(1, 9); s = randNonZero(1, 9);
+                } else if (diff === 'medium') {
+                    const primes = [2, 3, 5, 7];
+                    const chosenA = primes[Math.floor(Math.random() * primes.length)];
+                    if (Math.random() > 0.5) { p = chosenA; r = 1; } else { p = 1; r = chosenA; }
+                    q = randNonZero(-9, 9); s = randNonZero(-9, 9);
+                } else {
+                    const composites = [4, 6, 8, 9, 10, 12];
+                    const chosenA = composites[Math.floor(Math.random() * composites.length)];
+                    const pairs = getFactorPairs(chosenA);
+                    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+                    if (Math.random() > 0.5) { p = pair[0]; r = pair[1]; } else { p = pair[1]; r = pair[0]; }
+                    if (Math.random() > 0.5) { const temp = p; p = r; r = temp; }
+                    q = randNonZero(-12, 12); s = randNonZero(-12, 12);
+                }
+                a = p * r; b = (p * s) + (q * r); c = q * s;
+                if (b !== 0 && c !== 0 && gcd3(a, b, c) === 1) isValid = true;
+            }
+            const formatTerm = (coeff, power, isFirst) => {
+                if (coeff === 0) return '';
+                const absCoeff = Math.abs(coeff);
+                const sign = coeff < 0 ? ' - ' : (isFirst ? '' : ' + ');
+                const strCoeff = (absCoeff === 1 && power > 0) ? '' : absCoeff;
+                const variable = power === 2 ? 'x²' : (power === 1 ? 'x' : '');
+                return `${sign}${strCoeff}${variable}`;
+            };
+            const expression = `${formatTerm(a, 2, true)}${formatTerm(b, 1, false)}${formatTerm(c, 0, false)}`;
+            return { a, b, c, expression, correctFactors: { p, q, r, s } };
+        }
+
+        // --- 状态场景切换渲染 ---
+        function showMenu() {
+            gameState = 'menu';
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
+            document.getElementById('menu-view').classList.remove('hidden');
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('explosion-effect').classList.add('hidden');
+            document.getElementById('menu-score').innerText = `${score} 分`;
+            if (timerInterval) clearInterval(timerInterval);
+        }
+
+        function startGame(diff) {
+            soundEngine.init();
+            difficulty = diff;
+            gameState = 'playing';
+            timeLeft = 90;
+            wiresCut = { left: false, right: false };
+            currentProblem = generateQuadratic(difficulty);
+
+            // 清空、启用所有插槽
+            ['tl', 'tr', 'bl', 'br'].forEach(id => {
+                const el = document.getElementById(`input-${id}`);
+                el.value = '';
+                el.disabled = false;
+            });
+
+            // 完美复位物理导线图形与电火花
+            document.getElementById('wire-left-top').setAttribute('d', "M 60,30 C 60,100 20,150 60,220");
+            document.getElementById('wire-left-bottom').setAttribute('d', "");
+            document.getElementById('wire-right-top').setAttribute('d', "M 320,30 C 320,100 360,150 320,220");
+            document.getElementById('wire-right-bottom').setAttribute('d', "");
+            document.getElementById('spark-left').classList.add('hidden');
+            document.getElementById('spark-right').classList.add('hidden');
+
+            // 屏幕看板数据注入
+            document.getElementById('expression-text').innerText = currentProblem.expression;
+            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+            document.getElementById('feedback-box').classList.add('hidden');
+            document.getElementById('points-earned').classList.add('hidden');
+            document.getElementById('game-score').innerText = score;
+            document.getElementById('btn-defuse').classList.remove('hidden');
+            document.getElementById('btn-retry').classList.add('hidden');
+            updateDefuseButton();
+
+            document.getElementById('menu-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+
+            // 启动定时线程
+            updateTimerDisplay();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    handleExplosion();
+                } else if (timeLeft <= 10) {
+                    soundEngine.playTick(true);
+                } else if (timeLeft <= 30) {
+                    soundEngine.playTick(false);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            const el = document.getElementById('timer-text');
+            el.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+            if (timeLeft < 10) {
+                el.className = "font-mono font-bold text-xl text-red-500 animate-pulse";
+            } else {
+                el.className = "font-mono font-bold text-xl text-red-600";
+            }
+        }
+
+        // --- 实时交叉相乘法动态判定引擎 ---
+        function onInputChange() {
+            if (gameState !== 'playing') return;
+            
+            // 严审输入：只允许数字及负号
+            ['tl', 'tr', 'bl', 'br'].forEach(id => {
+                const el = document.getElementById(`input-${id}`);
+                el.value = el.value.replace(/[^0-9-]/g, '');
+            });
+
+            const tl = parseInt(document.getElementById('input-tl').value);
+            const bl = parseInt(document.getElementById('input-bl').value);
+            const tr = parseInt(document.getElementById('input-tr').value);
+            const br = parseInt(document.getElementById('input-br').value);
+
+            // 物理剪线路判定1：首项乘积匹配
+            if (!isNaN(tl) && !isNaN(bl) && tl * bl === currentProblem.a) {
+                if (!wiresCut.left) {
+                    soundEngine.playWireCut();
+                    document.getElementById('wire-left-top').setAttribute('d', "M 60,30 C 60,80 20,80 30,120");
+                    document.getElementById('wire-left-bottom').setAttribute('d', "M 60,220 C 60,180 80,180 70,160");
+                    document.getElementById('spark-left').classList.remove('hidden');
+                    wiresCut.left = true;
+                }
+            } else {
+                if (wiresCut.left) {
+                    document.getElementById('wire-left-top').setAttribute('d', "M 60,30 C 60,100 20,150 60,220");
+                    document.getElementById('wire-left-bottom').setAttribute('d', "");
+                    document.getElementById('spark-left').classList.add('hidden');
+                    wiresCut.left = false;
+                }
+            }
+
+            // 物理剪线路判定2：常数项乘积匹配
+            if (!isNaN(tr) && !isNaN(br) && tr * br === currentProblem.c) {
+                if (!wiresCut.right) {
+                    soundEngine.playWireCut();
+                    document.getElementById('wire-right-top').setAttribute('d', "M 320,30 C 320,80 360,80 350,120");
+                    document.getElementById('wire-right-bottom').setAttribute('d', "M 320,220 C 320,180 300,180 310,160");
+                    document.getElementById('spark-right').classList.remove('hidden');
+                    wiresCut.right = true;
+                }
+            } else {
+                if (wiresCut.right) {
+                    document.getElementById('wire-right-top').setAttribute('d', "M 320,30 C 320,100 360,150 320,220");
+                    document.getElementById('wire-right-bottom').setAttribute('d', "");
+                    document.getElementById('spark-right').classList.add('hidden');
+                    wiresCut.right = false;
+                }
+            }
+
+            updateDefuseButton();
+        }
+
+        function updateDefuseButton() {
+            const btn = document.getElementById('btn-defuse');
+            if (wiresCut.left && wiresCut.right) {
+                btn.disabled = false;
+                btn.className = "px-8 py-3 rounded shadow-xl font-black text-lg uppercase tracking-widest transition-all flex items-center gap-2 border-b-4 bg-red-600 border-red-800 text-white hover:bg-red-500 cursor-pointer animate-pulse";
+            } else {
+                btn.disabled = true;
+                btn.className = "px-8 py-3 rounded shadow-xl font-black text-lg uppercase tracking-widest transition-all flex items-center gap-2 border-b-4 bg-gray-700 border-gray-800 text-gray-500 cursor-not-allowed";
+            }
+        }
+
+        // --- 点击拆弹（验证一次项中间项） ---
+        function attemptDefuse() {
+            if (gameState !== 'playing') return;
+            clearInterval(timerInterval);
+
+            const tl = parseInt(document.getElementById('input-tl').value);
+            const bl = parseInt(document.getElementById('input-bl').value);
+            const tr = parseInt(document.getElementById('input-tr').value);
+            const br = parseInt(document.getElementById('input-br').value);
+
+            // 核心公式：交叉相乘再相加
+            const middleTerm = (tl * br) + (tr * bl);
+
+            if (middleTerm === currentProblem.b) {
+                handleWin(tl, tr, bl, br);
+            } else {
+                handleExplosion();
+            }
+        }
+
+        function formatBinomial(a, b) {
+            const aStr = a === 1 ? '' : (a === -1 ? '-' : a);
+            const bStr = b > 0 ? `+${b}` : `${b}`;
+            return `(${aStr}x${bStr})`;
+        }
+
+        function handleWin(tl, tr, bl, br) {
+            gameState = 'defused';
+            soundEngine.playWin();
+            disableInputs();
+
+            let basePoints = difficulty === 'easy' ? 100 : (difficulty === 'medium' ? 150 : 200);
+            const earned = basePoints + timeLeft;
+            score += earned;
+
+            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
+            document.getElementById('feedback-box').classList.remove('hidden');
+            
+            document.getElementById('feedback-text').innerText = "=" + formatBinomial(tl, tr) + formatBinomial(bl, br);
+            document.getElementById('feedback-text').className = "font-bold text-xl text-green-400";
+
+            document.getElementById('points-text').innerText = `+ ${earned} 分!`;
+            document.getElementById('points-earned').classList.remove('hidden');
+            document.getElementById('game-score').innerText = score;
+
+            document.getElementById('btn-defuse').classList.add('hidden');
+            document.getElementById('btn-retry').classList.remove('hidden');
+        }
+
+        function handleExplosion() {
+            gameState = 'exploded';
+            soundEngine.playExplosion();
+            clearInterval(timerInterval);
+            disableInputs();
+
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
+            document.getElementById('explosion-effect').classList.remove('hidden');
+
+            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+            document.getElementById('feedback-box').classList.remove('hidden');
+
+            const f = currentProblem.correctFactors;
+            document.getElementById('feedback-text').innerText = "=" + formatBinomial(f.p, f.q) + formatBinomial(f.r, f.s);
+            document.getElementById('feedback-text').className = "font-bold text-xl text-yellow-500";
+
+            document.getElementById('btn-defuse').classList.add('hidden');
+            document.getElementById('btn-retry').classList.remove('hidden');
+        }
+
+        function disableInputs() {
+            ['tl', 'tr', 'bl', 'br'].forEach(id => {
+                document.getElementById(`input-${id}`).disabled = true;
+            });
+        }
+
+        function toggleMute() {
+            soundEngine.isMuted = !soundEngine.isMuted;
+            const icon = document.getElementById('mute-icon');
+            if (soundEngine.isMuted) {
+                icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>';
+            } else {
+                icon.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+            }
+        }
+
+        // 初始化载入主页
+        showMenu();
+    </script>
+</body>
+</html>
