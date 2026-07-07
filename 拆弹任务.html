@@ -66,12 +66,21 @@
             </div>
             <h1 class="text-4xl font-black text-white mb-2 uppercase tracking-widest">因式分解<br/><span class="text-red-500 text-5xl">拆弹任务</span></h1>
             <p class="text-slate-300">作为拆弹专家，你需要运用<span class="text-yellow-400 font-bold">交叉相乘法</span>剪断正确的线路。</p>
-            <div class="grid grid-cols-1 gap-4 w-full px-8">
-                <button onclick="startGame('easy')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-green-600 border-green-800 text-white hover:bg-green-500">简单</button>
-                <button onclick="startGame('medium')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-yellow-600 border-yellow-800 text-white hover:bg-yellow-500">中等</button>
-                <button onclick="startGame('hard')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-red-600 border-red-800 text-white hover:bg-red-500">困难</button>
-                <button onclick="startGame('hell')" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 border-l-4 border-r-4 active:border-b-0 active:translate-y-1 bg-black border-red-900 text-red-500 hover:bg-zinc-900 shadow-[0_0_15px_rgba(220,38,38,0.5)]">地狱</button>
+
+            <div id="main-menu-buttons" class="grid grid-cols-1 gap-6 w-full px-8">
+                <button onclick="startRankedMode()" class="py-5 px-6 rounded-lg font-bold text-xl uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 border-r-4 border-l-4 active:border-b-0 active:translate-y-1 bg-gradient-to-r from-purple-800 to-indigo-800 border-indigo-950 text-white hover:from-purple-700 hover:to-indigo-700 shadow-[0_0_20px_rgba(79,70,229,0.5)]">🏆 排位挑战赛</button>
+                <button onclick="showPracticeMenu()" class="py-4 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-slate-600 border-slate-800 text-white hover:bg-slate-500">🎮 自由练习模式</button>
             </div>
+
+            <div id="practice-menu-buttons" class="grid grid-cols-1 gap-4 w-full px-8 hidden">
+                <p class="text-yellow-400 font-bold mb-2">选择练习难度（不计入排位分）</p>
+                <button onclick="startGame('practice', 'easy')" class="py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-green-600 border-green-800 text-white hover:bg-green-500">简单</button>
+                <button onclick="startGame('practice', 'medium')" class="py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-yellow-600 border-yellow-800 text-white hover:bg-yellow-500">中等</button>
+                <button onclick="startGame('practice', 'hard')" class="py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 active:border-b-0 active:translate-y-1 bg-red-600 border-red-800 text-white hover:bg-red-500">困难</button>
+                <button onclick="startGame('practice', 'hell')" class="py-3 px-6 rounded-lg font-bold text-lg uppercase tracking-wider transition-all transform hover:scale-105 border-b-4 border-l-4 border-r-4 active:border-b-0 active:translate-y-1 bg-black border-red-900 text-red-500 hover:bg-zinc-900 shadow-[0_0_15px_rgba(220,38,38,0.5)]">地狱</button>
+                <button onclick="hidePracticeMenu()" class="mt-4 py-2 px-6 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border-b-2 active:border-b-0 active:translate-y-1 bg-slate-700 border-slate-900 text-slate-300 hover:bg-slate-600">返回主菜单</button>
+            </div>
+
             <div class="mt-4">
                 <button onclick="openLeaderboard()" class="text-slate-300 underline hover:text-white transition-colors">查看全服排行榜</button>
             </div>
@@ -94,7 +103,13 @@
             </div>
         </div>
 
-        <div id="game-view" class="relative w-full max-w-3xl aspect-[4/3] md:aspect-video flex items-center justify-center hidden">
+        <div id="game-view" class="relative w-full max-w-3xl aspect-[4/3] md:aspect-video flex flex-col items-center justify-center hidden">
+            <!-- 全局倒计时 UI -->
+            <div id="global-timer-container" class="absolute top-4 z-40 bg-slate-900/80 px-6 py-2 rounded-full border-2 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.5)] hidden">
+                <span class="text-indigo-400 font-bold text-sm tracking-widest uppercase mr-2">全局倒计时</span>
+                <span id="global-timer-text" class="font-mono font-black text-2xl text-white">05:00</span>
+            </div>
+
             <div id="explosion-effect" class="absolute inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none hidden">
                 <div class="absolute inset-0 bg-white opacity-80 animate-pulse"></div>
                 <div class="w-96 h-96 bg-orange-500 rounded-full blur-2xl opacity-80 absolute"></div>
@@ -278,7 +293,15 @@
         let score = 0;
         let timeLeft = 90;
         let gameState = 'menu'; 
+        let gameMode = 'practice'; // 'ranked' | 'practice'
         let difficulty = 'easy';
+
+        let globalTimeLeft = 300;
+        let globalTimerInterval = null;
+        let currentRankedQuestion = 1;
+        let currentMatchScore = 0;
+        let currentMatchCorrect = 0;
+
         let currentProblem = null;
         let timerInterval = null;
         let wiresCut = { left: false, right: false };
@@ -385,10 +408,10 @@
         function openLeaderboard() {
             document.getElementById('leaderboard-modal').classList.remove('hidden');
             if (!leaderboardUnsubscribe) {
-                // 监听 Firestore 中 averageScore 前 10 名
-                leaderboardUnsubscribe = db.collection('users')
-                    .orderBy('averageScore', 'desc')
-                    .limit(10)
+                // 监听 Firestore 中 totalScore 前 100 名
+                leaderboardUnsubscribe = db.collection('users_v2')
+                    .orderBy('totalScore', 'desc')
+                    .limit(100)
                     .onSnapshot((snapshot) => {
                         const listDiv = document.getElementById('leaderboard-list');
                         listDiv.innerHTML = '';
@@ -398,8 +421,8 @@
                             return;
                         }
 
-                        let html = '<table class="w-full text-left text-sm">';
-                        html += '<thead class="text-slate-400 border-b border-slate-600"><tr><th class="pb-2 w-12 text-center">名次</th><th class="pb-2">特工代号</th><th class="pb-2 text-right">平均分</th><th class="pb-2 text-right">存活率</th></tr></thead><tbody>';
+                        let html = '<table class="w-full text-left text-xs sm:text-sm">';
+                        html += '<thead class="text-slate-400 border-b border-slate-600"><tr><th class="pb-2 w-8 sm:w-12 text-center">名次</th><th class="pb-2">特工代号</th><th class="pb-2 text-right">总积分</th><th class="pb-2 text-right hidden sm:table-cell">总答对</th><th class="pb-2 text-right hidden sm:table-cell">死亡率</th><th class="pb-2 text-right hidden sm:table-cell">均答题</th></tr></thead><tbody>';
 
                         let rank = 1;
                         snapshot.forEach((doc) => {
@@ -412,11 +435,17 @@
                             else if (rank === 2) rankDisplay = '🥈';
                             else if (rank === 3) rankDisplay = '🥉';
 
+                            const totalScoreClass = data.totalScore < 0 ? 'text-red-400' : 'text-yellow-500';
+                            const deathRate = data.gamesPlayed > 0 ? Math.round((data.totalDeaths / data.gamesPlayed) * 100) : 0;
+                            const avgCorrect = data.gamesPlayed > 0 ? (data.totalCorrect / data.gamesPlayed).toFixed(1) : "0.0";
+
                             html += `<tr class="${rowClass} transition-colors">
-                                <td class="py-3 text-center text-lg">${rankDisplay}</td>
-                                <td class="py-3 truncate max-w-[120px]">${data.displayName || 'Unknown'}</td>
-                                <td class="py-3 text-right text-yellow-500 font-mono">${Math.round(data.averageScore || 0)}</td>
-                                <td class="py-3 text-right text-emerald-400 font-mono">${Math.round(data.survivalRate || 0)}%</td>
+                                <td class="py-3 text-center text-sm sm:text-lg">${rankDisplay}</td>
+                                <td class="py-3 truncate max-w-[80px] sm:max-w-[120px]">${data.displayName || 'Unknown'}</td>
+                                <td class="py-3 text-right ${totalScoreClass} font-mono">${data.totalScore || 0}</td>
+                                <td class="py-3 text-right text-green-400 font-mono hidden sm:table-cell">${data.totalCorrect || 0}</td>
+                                <td class="py-3 text-right text-orange-400 font-mono hidden sm:table-cell">${deathRate}%</td>
+                                <td class="py-3 text-right text-indigo-300 font-mono hidden sm:table-cell">${avgCorrect}</td>
                             </tr>`;
                             rank++;
                         });
@@ -436,11 +465,10 @@
         // --- 用户状态与登录逻辑 ---
         let currentUser = null;
         let userData = {
-            totalPlays: 0,
+            gamesPlayed: 0,
+            totalCorrect: 0,
+            totalDeaths: 0,
             totalScore: 0,
-            deaths: 0,
-            averageScore: 0,
-            survivalRate: 0,
             displayName: ""
         };
 
@@ -475,7 +503,7 @@
 
         async function loadUserData(user) {
             try {
-                const userRef = db.collection('users').doc(user.uid);
+                const userRef = db.collection('users_v2').doc(user.uid);
                 const doc = await userRef.get();
 
                 let defaultName = user.displayName;
@@ -489,13 +517,17 @@
                     if (!userData.displayName) {
                         userData.displayName = defaultName;
                     }
+                    // 补全由于迁移或缺失的字段
+                    if (userData.gamesPlayed === undefined) userData.gamesPlayed = 0;
+                    if (userData.totalCorrect === undefined) userData.totalCorrect = 0;
+                    if (userData.totalDeaths === undefined) userData.totalDeaths = 0;
+                    if (userData.totalScore === undefined) userData.totalScore = 0;
                 } else {
                     userData = {
-                        totalPlays: 0,
+                        gamesPlayed: 0,
+                        totalCorrect: 0,
+                        totalDeaths: 0,
                         totalScore: 0,
-                        deaths: 0,
-                        averageScore: 0,
-                        survivalRate: 0,
                         displayName: defaultName
                     };
                     await userRef.set(userData);
@@ -521,20 +553,86 @@
             gameState = 'menu';
             document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
             document.getElementById('login-view').classList.add('hidden');
+
+            document.getElementById('main-menu-buttons').classList.remove('hidden');
+            document.getElementById('practice-menu-buttons').classList.add('hidden');
+
             document.getElementById('menu-view').classList.remove('hidden');
             document.getElementById('game-view').classList.add('hidden');
             document.getElementById('explosion-effect').classList.add('hidden');
-            document.getElementById('menu-score').innerText = `平均 ${Math.round(userData.averageScore)} 分 | 存活率 ${Math.round(userData.survivalRate)}%`;
+            document.getElementById('global-timer-container').classList.add('hidden');
+
+            const totalScoreText = userData.totalScore < 0 ? `<span class="text-red-500">${userData.totalScore}</span>` : userData.totalScore;
+            const survivalRate = userData.gamesPlayed > 0 ? Math.round(((userData.gamesPlayed - userData.totalDeaths) / userData.gamesPlayed) * 100) : 0;
+            document.getElementById('menu-score').innerHTML = `总分 ${totalScoreText} | 存活率 ${survivalRate}%`;
+
             if (timerInterval) clearInterval(timerInterval);
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
         }
 
-        function startGame(diff) {
+        function showPracticeMenu() {
+            document.getElementById('main-menu-buttons').classList.add('hidden');
+            document.getElementById('practice-menu-buttons').classList.remove('hidden');
+        }
+
+        function hidePracticeMenu() {
+            document.getElementById('practice-menu-buttons').classList.add('hidden');
+            document.getElementById('main-menu-buttons').classList.remove('hidden');
+        }
+
+        function startRankedMode() {
             soundEngine.init();
+            gameMode = 'ranked';
+            currentRankedQuestion = 1;
+            currentMatchScore = 0;
+            currentMatchCorrect = 0;
+            score = 0;
+
+            globalTimeLeft = 300;
+            document.getElementById('global-timer-container').classList.remove('hidden');
+            updateGlobalTimerDisplay();
+
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+            globalTimerInterval = setInterval(() => {
+                if (gameState !== 'playing' && gameState !== 'defused') return; // Pause global timer briefly while showing win screen
+
+                globalTimeLeft--;
+                updateGlobalTimerDisplay();
+
+                if (globalTimeLeft <= 0) {
+                    handleRankedTimeUp();
+                }
+            }, 1000);
+
+            nextRankedQuestion();
+        }
+
+        function getRankedDifficulty(qNum) {
+            const cycle = qNum % 4;
+            if (cycle === 1) return 'easy';
+            if (cycle === 2) return 'medium';
+            if (cycle === 3) return 'hard';
+            if (cycle === 0) return 'hell';
+        }
+
+        function nextRankedQuestion() {
+            let diff = getRankedDifficulty(currentRankedQuestion);
+            startGame('ranked', diff);
+        }
+
+        function startGame(mode, diff) {
+            soundEngine.init();
+            gameMode = mode;
             difficulty = diff;
             gameState = 'playing';
             timeLeft = 90;
             wiresCut = { left: false, right: false };
             currentProblem = generateQuadratic(difficulty);
+
+            if (gameMode === 'practice') {
+                score = 0; // 练习赛不累积大比分
+                document.getElementById('global-timer-container').classList.add('hidden');
+            }
 
             // 清空、启用所有插槽
             ['tl', 'tr', 'bl', 'br'].forEach(id => {
@@ -557,17 +655,27 @@
             document.getElementById('feedback-box').classList.add('hidden');
             document.getElementById('points-earned').classList.add('hidden');
             document.getElementById('game-score').innerText = score;
+
             document.getElementById('btn-defuse').classList.remove('hidden');
             document.getElementById('btn-retry').classList.add('hidden');
+            // 如果是排位赛且这不是第一题，可能已经存在“进入下一题”的按钮，我们需要隐藏
+            const btnNext = document.getElementById('btn-next');
+            if (btnNext) btnNext.classList.add('hidden');
+
             updateDefuseButton();
 
             document.getElementById('menu-view').classList.add('hidden');
             document.getElementById('game-view').classList.remove('hidden');
 
+            // 为了震动恢复
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
+            document.getElementById('explosion-effect').classList.add('hidden');
+
             // 启动定时线程
             updateTimerDisplay();
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
+                if (gameState !== 'playing') return;
                 timeLeft--;
                 updateTimerDisplay();
                 if (timeLeft <= 0) {
@@ -578,6 +686,18 @@
                     soundEngine.playTick(false);
                 }
             }, 1000);
+        }
+
+        function updateGlobalTimerDisplay() {
+            const mins = Math.floor(globalTimeLeft / 60);
+            const secs = globalTimeLeft % 60;
+            const el = document.getElementById('global-timer-text');
+            el.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (globalTimeLeft <= 30) {
+                el.className = "font-mono font-black text-2xl text-red-500 animate-pulse";
+            } else {
+                el.className = "font-mono font-black text-2xl text-white";
+            }
         }
 
         function updateTimerDisplay() {
@@ -683,23 +803,25 @@
             return `(${aStr}x${bStr})`;
         }
 
-        async function updateUserStats(earnedScore, isDeath) {
-            if (!currentUser) return;
+        async function commitMatchStats(isDeath) {
+            if (!currentUser || gameMode !== 'ranked') return;
             try {
-                userData.totalPlays += 1;
-                if (isDeath) userData.deaths += 1;
-                userData.totalScore += earnedScore;
+                userData.gamesPlayed += 1;
+                userData.totalCorrect += currentMatchCorrect;
 
-                userData.averageScore = userData.totalPlays > 0 ? userData.totalScore / userData.totalPlays : 0;
-                userData.survivalRate = userData.totalPlays > 0 ? ((userData.totalPlays - userData.deaths) / userData.totalPlays) * 100 : 0;
+                if (isDeath) {
+                    userData.totalDeaths += 1;
+                    currentMatchScore -= 500; // 爆炸扣 500 分
+                }
 
-                const userRef = db.collection('users').doc(currentUser.uid);
+                userData.totalScore += currentMatchScore;
+
+                const userRef = db.collection('users_v2').doc(currentUser.uid);
                 await userRef.update({
-                    totalPlays: userData.totalPlays,
-                    deaths: userData.deaths,
-                    totalScore: userData.totalScore,
-                    averageScore: userData.averageScore,
-                    survivalRate: userData.survivalRate
+                    gamesPlayed: userData.gamesPlayed,
+                    totalCorrect: userData.totalCorrect,
+                    totalDeaths: userData.totalDeaths,
+                    totalScore: userData.totalScore
                 });
             } catch (err) {
                 console.error("Error updating stats:", err);
@@ -710,12 +832,16 @@
             gameState = 'defused';
             soundEngine.playWin();
             disableInputs();
+            if (timerInterval) clearInterval(timerInterval);
 
             let basePoints = difficulty === 'easy' ? 100 : (difficulty === 'medium' ? 150 : (difficulty === 'hard' ? 200 : 300));
             const earned = basePoints + timeLeft;
             score += earned;
 
-            updateUserStats(earned, false);
+            if (gameMode === 'ranked') {
+                currentMatchScore += earned;
+                currentMatchCorrect += 1;
+            }
 
             document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
             document.getElementById('feedback-box').classList.remove('hidden');
@@ -728,16 +854,37 @@
             document.getElementById('game-score').innerText = score;
 
             document.getElementById('btn-defuse').classList.add('hidden');
-            document.getElementById('btn-retry').classList.remove('hidden');
+
+            if (gameMode === 'ranked') {
+                // 如果没有 btn-next，则创建一个
+                let btnNext = document.getElementById('btn-next');
+                if (!btnNext) {
+                    btnNext = document.createElement('button');
+                    btnNext.id = 'btn-next';
+                    btnNext.className = "px-8 py-3 rounded shadow-xl font-bold text-white bg-green-600 border-b-4 border-green-800 hover:bg-green-500 active:border-b-0 active:translate-y-1 flex items-center gap-2";
+                    btnNext.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg> 进入下一题`;
+                    btnNext.onclick = () => {
+                        currentRankedQuestion++;
+                        nextRankedQuestion();
+                    };
+                    document.getElementById('btn-defuse').parentNode.appendChild(btnNext);
+                }
+                btnNext.classList.remove('hidden');
+            } else {
+                document.getElementById('btn-retry').classList.remove('hidden');
+            }
         }
 
-        function handleExplosion() {
+        async function handleExplosion() {
             gameState = 'exploded';
             soundEngine.playExplosion();
-            clearInterval(timerInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
             disableInputs();
 
-            updateUserStats(0, true);
+            if (gameMode === 'ranked') {
+                await commitMatchStats(true);
+            }
 
             document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
             document.getElementById('explosion-effect').classList.remove('hidden');
@@ -749,7 +896,45 @@
             document.getElementById('feedback-text').innerText = "=" + formatBinomial(f.p, f.q) + formatBinomial(f.r, f.s);
             document.getElementById('feedback-text').className = "font-bold text-xl text-yellow-500";
 
+            if (gameMode === 'ranked') {
+                document.getElementById('points-text').innerText = `排位赛失败: -500 分!`;
+                document.getElementById('points-text').className = "text-red-400 font-bold";
+                document.getElementById('points-earned').classList.remove('hidden');
+            }
+
             document.getElementById('btn-defuse').classList.add('hidden');
+            const btnNext = document.getElementById('btn-next');
+            if (btnNext) btnNext.classList.add('hidden');
+
+            document.getElementById('btn-retry').classList.remove('hidden');
+        }
+
+        async function handleRankedTimeUp() {
+            gameState = 'ended';
+            soundEngine.playExplosion(); // 简单起见，时间到也播放失败音效
+            if (timerInterval) clearInterval(timerInterval);
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+            disableInputs();
+
+            await commitMatchStats(false); // 没被炸死，只是时间到
+
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
+
+            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]";
+            document.getElementById('expression-text').innerText = "时间到！";
+            document.getElementById('feedback-box').classList.remove('hidden');
+
+            document.getElementById('feedback-text').innerText = "排位赛已结算";
+            document.getElementById('feedback-text').className = "font-bold text-xl text-indigo-300";
+
+            document.getElementById('points-text').innerText = `本局得分: ${currentMatchScore}`;
+            document.getElementById('points-text').className = "text-yellow-400 font-bold";
+            document.getElementById('points-earned').classList.remove('hidden');
+
+            document.getElementById('btn-defuse').classList.add('hidden');
+            const btnNext = document.getElementById('btn-next');
+            if (btnNext) btnNext.classList.add('hidden');
+
             document.getElementById('btn-retry').classList.remove('hidden');
         }
 
