@@ -210,10 +210,17 @@
                         <button id="btn-hint" onclick="buyHint()" class="px-4 py-3 rounded shadow-xl font-bold text-white bg-cyan-600 border-b-4 border-cyan-800 hover:bg-cyan-500 active:border-b-0 active:translate-y-1 flex items-center gap-2">
                             购买提示 💡
                         </button>
-                        <button id="btn-retry" onclick="showMenu()" class="px-8 py-3 rounded shadow-xl font-bold text-white bg-blue-600 border-b-4 border-blue-800 hover:bg-blue-500 active:border-b-0 active:translate-y-1 flex items-center gap-2 hidden">
+                        <button id="btn-retry" onclick="showMenu()" class="px-8 py-3 rounded shadow-xl font-bold text-white bg-slate-600 border-b-4 border-slate-800 hover:bg-slate-500 active:border-b-0 active:translate-y-1 flex items-center gap-2 hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
                             返回主菜单
                         </button>
+                        <button id="btn-practice-next" onclick="startGame('practice', difficulty)" class="px-8 py-3 rounded shadow-xl font-bold text-white bg-blue-600 border-b-4 border-blue-800 hover:bg-blue-500 active:border-b-0 active:translate-y-1 flex items-center gap-2 hidden">
+                            继续练习 ➔
+                        </button>
+                    </div>
+
+                    <div class="mt-6 text-slate-500 text-xs md:text-sm hidden md:block">
+                        电脑端提示：使用 W/A/S/D 键切换输入框，Enter 键执行操作
                     </div>
                 </div>
             </div>
@@ -682,6 +689,7 @@
 
             document.getElementById('btn-defuse').classList.remove('hidden');
             document.getElementById('btn-retry').classList.add('hidden');
+            document.getElementById('btn-practice-next').classList.add('hidden');
             // 如果是排位赛且这不是第一题，可能已经存在“进入下一题”的按钮，我们需要隐藏
             const btnNext = document.getElementById('btn-next');
             if (btnNext) btnNext.classList.add('hidden');
@@ -782,16 +790,16 @@
             if (gameState === 'playing' && activeId && activeId.startsWith('input-')) {
                 const pos = activeId.split('-')[1]; // tl, tr, bl, br
 
-                if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+                if (e.key.toLowerCase() === 'd') {
                     if (pos === 'tl') document.getElementById('input-tr').focus();
                     else if (pos === 'bl') document.getElementById('input-br').focus();
-                } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+                } else if (e.key.toLowerCase() === 'a') {
                     if (pos === 'tr') document.getElementById('input-tl').focus();
                     else if (pos === 'br') document.getElementById('input-bl').focus();
-                } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
+                } else if (e.key.toLowerCase() === 's') {
                     if (pos === 'tl') document.getElementById('input-bl').focus();
                     else if (pos === 'tr') document.getElementById('input-br').focus();
-                } else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') {
+                } else if (e.key.toLowerCase() === 'w') {
                     if (pos === 'bl') document.getElementById('input-tl').focus();
                     else if (pos === 'br') document.getElementById('input-tr').focus();
                 }
@@ -810,9 +818,13 @@
                     const btnNext = document.getElementById('btn-next');
                     const btnRetry = document.getElementById('btn-retry');
 
+                    const btnPracticeNext = document.getElementById('btn-practice-next');
+
                     if (btnNext && !btnNext.classList.contains('hidden')) {
                         currentRankedQuestion++;
                         nextRankedQuestion();
+                    } else if (btnPracticeNext && !btnPracticeNext.classList.contains('hidden')) {
+                        startGame('practice', difficulty);
                     } else if (btnRetry && !btnRetry.classList.contains('hidden')) {
                         showMenu();
                     }
@@ -980,6 +992,7 @@
                 btnNext.classList.remove('hidden');
             } else {
                 document.getElementById('btn-retry').classList.remove('hidden');
+                document.getElementById('btn-practice-next').classList.remove('hidden');
             }
         }
 
@@ -1089,38 +1102,39 @@
             }
 
             document.getElementById('btn-defuse').classList.add('hidden');
+            document.getElementById('btn-hint').classList.add('hidden');
             const btnNext = document.getElementById('btn-next');
             if (btnNext) btnNext.classList.add('hidden');
 
             document.getElementById('btn-retry').classList.remove('hidden');
+            if (gameMode === 'practice') {
+                document.getElementById('btn-practice-next').classList.remove('hidden');
+            }
         }
 
         async function handleRankedTimeUp() {
             gameState = 'ended';
-            soundEngine.playExplosion(); // 简单起见，时间到也播放失败音效
             if (timerInterval) clearInterval(timerInterval);
             if (globalTimerInterval) clearInterval(globalTimerInterval);
             disableInputs();
 
             await commitMatchStats(false); // 没被炸死，只是时间到
 
-            document.getElementById('app').className = "min-h-screen flex flex-col items-center justify-center p-4 select-none overflow-hidden bg-red-950 animate-shake";
+            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden";
 
-            document.getElementById('explosion-effect').classList.remove('hidden');
-            startCyberExplosion();
-
-            document.getElementById('expression-text').className = "font-black text-4xl md:text-5xl tracking-widest text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-glitch";
-            document.getElementById('expression-text').innerText = "Game Over";
+            document.getElementById('expression-text').className = "font-black text-4xl md:text-5xl tracking-widest text-indigo-400 drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]";
+            document.getElementById('expression-text').innerText = "GAME OVER";
             document.getElementById('feedback-box').classList.remove('hidden');
 
-            document.getElementById('feedback-text').innerText = "排位赛已结算";
-            document.getElementById('feedback-text').className = "font-bold text-xl text-indigo-300";
+            document.getElementById('feedback-text').innerText = "时间到！排位赛已优雅结算";
+            document.getElementById('feedback-text').className = "font-bold text-xl text-slate-300 mt-2";
 
-            document.getElementById('points-text').innerText = `本局得分: ${currentMatchScore}`;
+            document.getElementById('points-text').innerText = `最终累积得分: ${currentMatchScore}`;
             document.getElementById('points-text').className = "text-yellow-400 font-bold";
             document.getElementById('points-earned').classList.remove('hidden');
 
             document.getElementById('btn-defuse').classList.add('hidden');
+            document.getElementById('btn-hint').classList.add('hidden');
             const btnNext = document.getElementById('btn-next');
             if (btnNext) btnNext.classList.add('hidden');
 
