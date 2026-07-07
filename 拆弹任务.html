@@ -31,6 +31,17 @@
         
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+
+        /* Glitch 故障风特效 */
+        @keyframes glitch {
+            0% { transform: translate(0); text-shadow: 2px 2px #ff00c1, -2px -2px #00fff9; }
+            20% { transform: translate(-2px, 2px); text-shadow: -2px -2px #ff00c1, 2px 2px #00fff9; }
+            40% { transform: translate(-2px, -2px); text-shadow: 2px -2px #ff00c1, -2px 2px #00fff9; }
+            60% { transform: translate(2px, 2px); text-shadow: -2px 2px #ff00c1, 2px -2px #00fff9; }
+            80% { transform: translate(2px, -2px); text-shadow: 2px 2px #ff00c1, -2px -2px #00fff9; }
+            100% { transform: translate(0); text-shadow: -2px -2px #ff00c1, 2px 2px #00fff9; }
+        }
+        .animate-glitch { animation: glitch 0.2s infinite; }
     </style>
 </head>
 <body>
@@ -105,9 +116,7 @@
 
         <div id="game-view" class="relative w-full max-w-3xl aspect-[4/3] md:aspect-video flex flex-col items-center justify-center hidden">
             <div id="explosion-effect" class="absolute inset-0 z-50 flex items-center justify-center overflow-hidden pointer-events-none hidden">
-                <div class="absolute inset-0 bg-white opacity-80 animate-pulse"></div>
-                <div class="w-96 h-96 bg-orange-500 rounded-full blur-2xl opacity-80 absolute"></div>
-                <div class="w-[32rem] h-[32rem] bg-red-600 rounded-full blur-3xl opacity-70 absolute"></div>
+                <canvas id="explosion-canvas" class="absolute inset-0 w-full h-full"></canvas>
             </div>
 
             <!-- 全局倒计时 UI -->
@@ -170,29 +179,36 @@
                         </svg>
 
                         <div class="grid grid-cols-2 h-full gap-x-24 gap-y-12 relative z-10">
-                            <div class="flex flex-col items-center">
+                            <div class="flex flex-col items-center relative">
                                 <input id="input-tl" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                                <button onclick="toggleSign('tl')" class="absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700/80 hover:bg-slate-600 text-white text-xs font-bold rounded flex items-center justify-center border border-slate-500 active:scale-90 transition-transform">+/-</button>
                                 <div class="w-4 h-4 bg-gray-500 rounded-full mt-1 shadow-md"></div>
                             </div>
-                            <div class="flex flex-col items-center">
+                            <div class="flex flex-col items-center relative">
                                 <input id="input-tr" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
+                                <button onclick="toggleSign('tr')" class="absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700/80 hover:bg-slate-600 text-white text-xs font-bold rounded flex items-center justify-center border border-slate-500 active:scale-90 transition-transform">+/-</button>
                                 <div class="w-4 h-4 bg-gray-500 rounded-full mt-1 shadow-md"></div>
                             </div>
-                            <div class="flex flex-col items-center justify-end">
+                            <div class="flex flex-col items-center justify-end relative">
                                 <div class="w-4 h-4 bg-gray-500 rounded-full mb-1 shadow-md"></div>
+                                <button onclick="toggleSign('bl')" class="absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700/80 hover:bg-slate-600 text-white text-xs font-bold rounded flex items-center justify-center border border-slate-500 active:scale-90 transition-transform">+/-</button>
                                 <input id="input-bl" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
                             </div>
-                            <div class="flex flex-col items-center justify-end">
+                            <div class="flex flex-col items-center justify-end relative">
                                 <div class="w-4 h-4 bg-gray-500 rounded-full mb-1 shadow-md"></div>
+                                <button onclick="toggleSign('br')" class="absolute -right-6 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-700/80 hover:bg-slate-600 text-white text-xs font-bold rounded flex items-center justify-center border border-slate-500 active:scale-90 transition-transform">+/-</button>
                                 <input id="input-br" type="text" inputmode="numeric" placeholder="?" oninput="onInputChange()" class="w-16 h-16 bg-gray-200 text-black text-center text-2xl font-bold rounded shadow-inner border-4 border-gray-400 focus:border-yellow-500 outline-none">
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-8 flex gap-4">
-                        <button id="btn-defuse" onclick="attemptDefuse()" disabled class="px-8 py-3 rounded shadow-xl font-black text-lg uppercase tracking-widest transition-all flex items-center gap-2 border-b-4 bg-gray-700 border-gray-800 text-gray-500 cursor-not-allowed">
+                    <div class="mt-8 flex gap-4 flex-wrap justify-center">
+                        <button id="btn-defuse" onclick="attemptDefuse()" disabled class="px-6 md:px-8 py-3 rounded shadow-xl font-black text-base md:text-lg uppercase tracking-widest transition-all flex items-center gap-2 border-b-4 bg-gray-700 border-gray-800 text-gray-500 cursor-not-allowed">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                             剪断引信 (拆弹)
+                        </button>
+                        <button id="btn-hint" onclick="buyHint()" class="px-4 py-3 rounded shadow-xl font-bold text-white bg-cyan-600 border-b-4 border-cyan-800 hover:bg-cyan-500 active:border-b-0 active:translate-y-1 flex items-center gap-2">
+                            购买提示 💡
                         </button>
                         <button id="btn-retry" onclick="showMenu()" class="px-8 py-3 rounded shadow-xl font-bold text-white bg-blue-600 border-b-4 border-blue-800 hover:bg-blue-500 active:border-b-0 active:translate-y-1 flex items-center gap-2 hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
@@ -301,6 +317,7 @@
         let currentRankedQuestion = 1;
         let currentMatchScore = 0;
         let currentMatchCorrect = 0;
+        let hintCost = 150;
 
         let currentProblem = null;
         let timerInterval = null;
@@ -586,6 +603,7 @@
             currentRankedQuestion = 1;
             currentMatchScore = 0;
             currentMatchCorrect = 0;
+            hintCost = 150;
             score = 0;
 
             globalTimeLeft = 300;
@@ -631,8 +649,14 @@
 
             if (gameMode === 'practice') {
                 score = 0; // 练习赛不累积大比分
+                hintCost = 0;
                 document.getElementById('global-timer-container').classList.add('hidden');
             }
+
+            document.getElementById('btn-hint').innerText = `购买提示 💡 (${gameMode === 'ranked' ? hintCost : '免费'})`;
+            document.getElementById('btn-hint').classList.remove('hidden');
+            document.getElementById('btn-hint').disabled = false;
+            document.getElementById('btn-hint').classList.remove('opacity-50', 'cursor-not-allowed');
 
             // 清空、启用所有插槽
             ['tl', 'tr', 'bl', 'br'].forEach(id => {
@@ -711,6 +735,90 @@
                 el.className = "font-mono font-bold text-xl text-red-600";
             }
         }
+
+        // --- 提示系统 ---
+        function buyHint() {
+            if (gameState !== 'playing') return;
+            const message = gameMode === 'ranked' ? `确定花费 ${hintCost} 积分购买提示吗？` : `确定获取免费提示吗？`;
+            if (confirm(message)) {
+                if (gameMode === 'ranked') {
+                    currentMatchScore -= hintCost;
+                    score -= hintCost; // 同步扣除，确保 UI 显示正确
+                    hintCost = Math.min(300, hintCost + 50); // 阶梯增加，封顶 300
+                    document.getElementById('btn-hint').innerText = `购买提示 💡 (${hintCost})`;
+                    document.getElementById('game-score').innerText = score;
+                }
+
+                // 将正确常数项因子填入右侧
+                document.getElementById('input-tr').value = currentProblem.correctFactors.q;
+                document.getElementById('input-br').value = currentProblem.correctFactors.s;
+
+                // 触发判定特效
+                onInputChange();
+                document.getElementById('btn-hint').disabled = true;
+                document.getElementById('btn-hint').classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function toggleSign(id) {
+            if (gameState !== 'playing') return;
+            const el = document.getElementById(`input-${id}`);
+            if (el.disabled || el.value.trim() === '') return;
+            let val = parseInt(el.value);
+            if (!isNaN(val)) {
+                el.value = (val * -1).toString();
+                onInputChange();
+            } else if (el.value === '-') {
+                el.value = '';
+                onInputChange();
+            }
+        }
+
+        // --- 键盘快捷导航与全局快捷键 ---
+        document.addEventListener('keydown', function(e) {
+            // 焦点移动
+            const activeId = document.activeElement ? document.activeElement.id : null;
+
+            if (gameState === 'playing' && activeId && activeId.startsWith('input-')) {
+                const pos = activeId.split('-')[1]; // tl, tr, bl, br
+
+                if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+                    if (pos === 'tl') document.getElementById('input-tr').focus();
+                    else if (pos === 'bl') document.getElementById('input-br').focus();
+                } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+                    if (pos === 'tr') document.getElementById('input-tl').focus();
+                    else if (pos === 'br') document.getElementById('input-bl').focus();
+                } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
+                    if (pos === 'tl') document.getElementById('input-bl').focus();
+                    else if (pos === 'tr') document.getElementById('input-br').focus();
+                } else if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') {
+                    if (pos === 'bl') document.getElementById('input-tl').focus();
+                    else if (pos === 'br') document.getElementById('input-tr').focus();
+                }
+            }
+
+            // Enter 快捷键判定
+            if (e.key === 'Enter') {
+                if (gameState === 'playing') {
+                    // 若可拆弹，则回车直接拆弹
+                    const btnDefuse = document.getElementById('btn-defuse');
+                    if (!btnDefuse.disabled && !btnDefuse.classList.contains('hidden')) {
+                        attemptDefuse();
+                    }
+                } else if (gameState === 'defused' || gameState === 'exploded' || gameState === 'ended') {
+                    // 若有下一题/重试按钮，回车直接触发
+                    const btnNext = document.getElementById('btn-next');
+                    const btnRetry = document.getElementById('btn-retry');
+
+                    if (btnNext && !btnNext.classList.contains('hidden')) {
+                        currentRankedQuestion++;
+                        nextRankedQuestion();
+                    } else if (btnRetry && !btnRetry.classList.contains('hidden')) {
+                        showMenu();
+                    }
+                }
+            }
+        });
 
         // --- 实时交叉相乘法动态判定引擎 ---
         function onInputChange() {
@@ -875,6 +983,82 @@
             }
         }
 
+        // HTML5 Canvas 爆炸特效控制器
+        let explosionCtx = null;
+        let particles = [];
+        let explosionAnimationId = null;
+
+        function startCyberExplosion() {
+            const canvas = document.getElementById('explosion-canvas');
+            if (!canvas) return;
+            explosionCtx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            particles = [];
+
+            // 产生粒子
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * (Math.random() * 30 + 10), // 增加初速度
+                    vy: (Math.random() - 0.5) * (Math.random() * 30 + 10),
+                    size: Math.random() * 5 + 2,
+                    color: Math.random() > 0.5 ? '#ef4444' : (Math.random() > 0.5 ? '#f97316' : '#eab308'), // 红 橙 黄
+                    life: 1.0
+                });
+            }
+
+            // 产生冲击波
+            particles.push({
+                type: 'shockwave',
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 10,
+                maxRadius: Math.max(canvas.width, canvas.height),
+                life: 1.0
+            });
+
+            function animate() {
+                explosionCtx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // 留尾巴
+                explosionCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                let activeParticles = 0;
+
+                for(let p of particles) {
+                    if (p.life <= 0) continue;
+                    activeParticles++;
+
+                    if (p.type === 'shockwave') {
+                        p.radius += 30;
+                        p.life -= 0.05;
+                        explosionCtx.beginPath();
+                        explosionCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        explosionCtx.strokeStyle = `rgba(255, 100, 100, ${p.life})`;
+                        explosionCtx.lineWidth = 10;
+                        explosionCtx.stroke();
+                    } else {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.5; // 重力
+                        p.life -= 0.02;
+
+                        explosionCtx.fillStyle = p.color;
+                        explosionCtx.globalAlpha = Math.max(0, p.life);
+                        explosionCtx.fillRect(p.x, p.y, p.size, p.size);
+                    }
+                }
+                explosionCtx.globalAlpha = 1.0;
+
+                if (activeParticles > 0) {
+                    explosionAnimationId = requestAnimationFrame(animate);
+                }
+            }
+            if(explosionAnimationId) cancelAnimationFrame(explosionAnimationId);
+            animate();
+        }
+
+
         async function handleExplosion() {
             gameState = 'exploded';
             soundEngine.playExplosion();
@@ -886,15 +1070,17 @@
                 await commitMatchStats(true);
             }
 
-            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
+            document.getElementById('app').className = "min-h-screen flex flex-col items-center justify-center p-4 select-none overflow-hidden bg-red-950 animate-shake";
             document.getElementById('explosion-effect').classList.remove('hidden');
+            startCyberExplosion();
 
-            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]";
+            document.getElementById('expression-text').className = "font-black text-4xl md:text-5xl tracking-widest text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-glitch";
+            document.getElementById('expression-text').innerText = "MISSION FAILED";
             document.getElementById('feedback-box').classList.remove('hidden');
 
             const f = currentProblem.correctFactors;
-            document.getElementById('feedback-text').innerText = "=" + formatBinomial(f.p, f.q) + formatBinomial(f.r, f.s);
-            document.getElementById('feedback-text').className = "font-bold text-xl text-yellow-500";
+            document.getElementById('feedback-text').innerText = "正确拆解: " + formatBinomial(f.p, f.q) + formatBinomial(f.r, f.s);
+            document.getElementById('feedback-text').className = "font-bold text-xl text-red-200 mt-2";
 
             if (gameMode === 'ranked') {
                 document.getElementById('points-text').innerText = `排位赛失败: -500 分!`;
@@ -918,10 +1104,13 @@
 
             await commitMatchStats(false); // 没被炸死，只是时间到
 
-            document.getElementById('app').className = "min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 select-none overflow-hidden animate-shake";
+            document.getElementById('app').className = "min-h-screen flex flex-col items-center justify-center p-4 select-none overflow-hidden bg-red-950 animate-shake";
 
-            document.getElementById('expression-text').className = "font-mono text-3xl md:text-4xl tracking-widest font-bold text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]";
-            document.getElementById('expression-text').innerText = "时间到！";
+            document.getElementById('explosion-effect').classList.remove('hidden');
+            startCyberExplosion();
+
+            document.getElementById('expression-text').className = "font-black text-4xl md:text-5xl tracking-widest text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-glitch";
+            document.getElementById('expression-text').innerText = "Game Over";
             document.getElementById('feedback-box').classList.remove('hidden');
 
             document.getElementById('feedback-text').innerText = "排位赛已结算";
